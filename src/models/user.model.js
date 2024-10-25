@@ -1,6 +1,6 @@
 import mongoose ,{ Schema } from "mongoose";
 import bycrypt from 'bcrypt'
-import { sign } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 
 const userSchema=new Schema({
  username:{
@@ -27,7 +27,7 @@ const userSchema=new Schema({
  },
  avatar:{
     type:String,
-    required:trusted
+    required:true
     
  },  
  coverImage:{
@@ -44,18 +44,21 @@ const userSchema=new Schema({
     
   
 
+ },
+ refreshToken:{
+   type:String
  }
 },{timestamps:true})
 userSchema.pre("save",async function(next){
     if(!this.isModified('password')) return next()
-    this.password=bycrypt.hash(this.password,10)
+    this.password= await bycrypt.hash(this.password,10)
 next()
 })
 userSchema.methods.isPasswordCorrect= async function(password){
   return  await bycrypt.compare(password,this.password)
 }
 userSchema.methods.genrateAccessToken= async function(){
- return await sign({
+ return await jwt.sign({
         _id:this._id,
         username:this.username,
         email:this.email,
@@ -63,7 +66,7 @@ userSchema.methods.genrateAccessToken= async function(){
      },process.env.Access_Token,{expiresIn:process.env.Access_Token_Expire})
 }
 userSchema.methods.genrateRefreshToken= async function(){
-    return await sign({
+    return await jwt.sign({
         _id:this._id,
         
      },process.env.Refresh_Token,{expiresIn:process.env.Refresh_Token_Expire})
